@@ -1,0 +1,24 @@
+.en {
+    background-image: url("1.jpg");
+    background-repeat: no-repeat;
+}
+
+.hi {
+    background-image: url("2.jpg");
+    background-repeat: no-repeat;
+}
+
+.mr {
+    background-image: url("3.jpg");
+    background-repeat: no-repeat;
+}
+
+.ex {
+    background-image: url("4.jpg");
+    background-repeat: no-repeat;
+}
+
+.ab {
+    background-image: url("5.jpg");
+    background-repeat: no-repeat;
+}

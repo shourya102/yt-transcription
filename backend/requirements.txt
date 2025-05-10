@@ -1,0 +1,24 @@
+coreferee==1.4.1
+Flask==2.2.5
+Flask_Bcrypt==1.0.1
+Flask_Cors==3.0.10
+Flask_JWT_Extended==4.4.4
+flask_mail==0.10.0
+flask_sqlalchemy==3.1.1
+librosa==0.10.2.post1
+nltk==3.9.1
+numpy==2.2.2
+protobuf==4.25.3
+pydub==0.25.1
+PyJWT==2.10.1
+PyJWT==2.10.1
+pytubefix==8.12.0
+scikit_learn==1.6.1
+spacy==3.7.2
+torch==2.5.1
+transformers==4.45.2
+youtube_transcript_api==0.6.2
+
+# install using pip
+# pip install pytubefix, pydub
+# python -m spacey en_core_web_sm
