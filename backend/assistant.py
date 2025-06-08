@@ -2,7 +2,7 @@ import google.generativeai as genai
 
 # import time
 
-API_KEY = 'AIzaSyACgvxGSqtyFdJnPyLPUuFcqwTJik89SJQ'
+API_KEY = ''
 genai.configure(api_key=API_KEY)
 model = genai.GenerativeModel("tunedModels/yttranscriptionassistant-wdh9ly1qx7f9")
 
