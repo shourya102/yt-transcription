@@ -6,5 +6,8 @@
     "backend": "cd backend && conda activate yt-transcription && python run.py",
     "dev": "concurrently \"npm run backend\" \"npm run frontend\""
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
 }

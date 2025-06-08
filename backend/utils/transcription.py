@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 
@@ -7,15 +8,16 @@ import torch
 from pydub import AudioSegment
 from pytubefix import YouTube
 from transformers import Speech2TextProcessor, Speech2TextForConditionalGeneration
-from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, NoTranscriptAvailable, NotTranslatable, \
+from youtube_transcript_api import YouTubeTranscriptApi, NoTranscriptFound, NotTranslatable, \
     TranscriptsDisabled
 
+logger = logging.getLogger(__name__)
 
 class Transcription:
     def __init__(self, video_url, languages=None):
         self.video_url = video_url
         self.languages = languages
-        self.transcript = YouTubeTranscriptApi
+        self.transcript = YouTubeTranscriptApi()
         if languages is None:
             self.languages = ['en']
         if video_url is not None:
@@ -27,7 +29,7 @@ class Transcription:
             print(transcript)
             print('----Youtube Transcription Available----')
             return True
-        except NoTranscriptAvailable:
+        except TranscriptsDisabled:
             print('Error: Transcript is not available')
             return False
         except NoTranscriptFound:
@@ -43,13 +45,13 @@ class Transcription:
     def list_transcript_languages(self):
         status_dict = {}
         try:
-            transcript_list = YouTubeTranscriptApi.list_transcripts(self.video_id)
+            transcript_list = self.transcript.list(self.video_id)
             for lang in self.languages:
-                if lang in transcript_list.manually_created_transcripts:
+                if lang in transcript_list._manually_created_transcripts:
                     status_dict[lang] = 'manual'
-                elif lang in transcript_list.generated_transcripts:
+                elif lang in transcript_list._generated_transcripts:
                     status_dict[lang] = 'auto_generated'
-                elif any(tl['language_code'] == lang for tl in transcript_list.translation_languages):
+                elif any(tl.language_code == lang for tl in transcript_list._translation_languages):
                     status_dict[lang] = 'translated'
                 else:
                     status_dict[lang] = 'not_available'
@@ -71,7 +73,8 @@ class Transcription:
         os.remove(audio_file)
         return audio_file
 
-    def preprocess_text(self, text, lang="en"):
+    @staticmethod
+    def preprocess_text(text, lang="en"):
         text = re.sub(r'\s+', ' ', text)
         text = re.sub(r'\[.*?\]', '', text)
         if lang == "en":
@@ -106,7 +109,8 @@ class Transcription:
     def get_transcripts(self):
         transcripts_dict = {}
         try:
-            transcript_list = YouTubeTranscriptApi.list_transcripts(self.video_id)
+            transcript_list = self.transcript.list(self.video_id)
+            logger.info(transcript_list)
             for lang in self.languages:
                 transcript_text = ""
                 source_type = "not_available"
@@ -116,9 +120,12 @@ class Transcription:
                     candidates = ['en', 'en-GB', 'en-US']
                 for candidate in candidates:
                     if candidate in transcript_list._manually_created_transcripts:
+                        logging.info(transcript_list._manually_created_transcripts)
                         try:
                             transcript = transcript_list.find_manually_created_transcript(
-                                language_codes=[candidate]).fetch()
+                                language_codes=[candidate])
+                            transcript = transcript.fetch()
+                            logging.info(transcript)
                             source_type = "manual"
                             break
                         except Exception as e:
@@ -130,7 +137,8 @@ class Transcription:
                         if candidate in transcript_list._generated_transcripts:
                             try:
                                 transcript = transcript_list.find_generated_transcript(
-                                    language_codes=[candidate]).fetch()
+                                    language_codes=[candidate])
+                                transcript = transcript.fetch()
                                 source_type = "auto_generated"
                                 break
                             except Exception as e:
@@ -140,7 +148,7 @@ class Transcription:
                 if not transcript:
                     possible_sources = []
                     for available_transcript in transcript_list:
-                        translation_langs = [tlang['language_code'] for tlang in
+                        translation_langs = [tlang.language_code for tlang in
                                              available_transcript.translation_languages]
                         if lang in translation_langs:
                             possible_sources.append(available_transcript)
@@ -155,22 +163,23 @@ class Transcription:
                             ordered_sources.append(source)
                     for available_transcript in ordered_sources:
                         try:
-                            transcript = available_transcript.translate(lang).fetch()
+                            transcript = available_transcript.translate(lang)
+                            transcript = transcript.fetch()
                             source_type = "translated"
                             break
                         except Exception as e:
                             print(f"Error translating to {lang} from {available_transcript.language_code}: {str(e)}")
                 if transcript:
-                    if lang is 'en':
-                        transcript_text = " ".join([entry['text'].strip() for entry in transcript])
+                    if lang == 'en':
+                        transcript_text = " ".join([entry.text.strip() for entry in transcript])
                     else:
-                        transcript_text = ". ".join([entry['text'].replace('।', '').strip() for entry in transcript])
+                        transcript_text = ". ".join([entry.text.replace('।', '').strip() for entry in transcript])
                     transcript_text = self.preprocess_text(transcript_text, lang=lang)
                 transcripts_dict[lang] = {
                     'text': transcript_text,
                     'source_type': source_type if transcript_text else 'not_available'
                 }
-        except (TranscriptsDisabled, NoTranscriptFound) as e:
+        except (TranscriptsDisabled, TranscriptsDisabled) as e:
             print(f"Transcripts disabled or not found: {str(e)}")
             for lang in self.languages:
                 transcripts_dict[lang] = {'text': "", 'source_type': 'not_available'}

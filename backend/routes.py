@@ -10,13 +10,14 @@ from pytubefix import YouTube
 from __init__ import mail
 from assistant import assistant_response
 from models import User, db
-from utils.summarization import summarize
+from utils.summarization import TextSummarizer
 from utils.transcription import Transcription
 
 routes = Blueprint('routes', __name__)
 SECRET_KEY = "your_secret_key"
 YOUR_EMAIL_TO_SEND_FEEDBACK_TO = ''
-
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 def send_email(to, subject, message_body):
     msg = Message(subject, recipients=[to])
@@ -159,15 +160,17 @@ def get_summary(languages=None, video_url=None, num_sentences=2):
             return jsonify(error='Video too long'), 500
         transcription = Transcription(video_url, languages)
         transcripts = transcription.get_transcripts()
+        logging.info(transcripts)
         summaries = {}
+        summarizer = TextSummarizer()
         for lang in languages:
             transcript_data = transcripts.get(lang, {'text': '', 'source_type': 'not_available'})
             lang_entry = dict()
             if transcript_data['source_type'] != 'not_available':
                 input_text = transcript_data['text']
                 lang_entry['transcript'] = input_text
-                lang_entry['extractive'] = summarize(input_text, summary_type='extractive', num_sentences=num_sentences)
-                lang_entry['abstractive'] = summarize(input_text, summary_type='abstractive')
+                lang_entry['extractive'] = summarizer.summarize(input_text, summary_type='extractive', num_sentences=num_sentences)
+                lang_entry['abstractive'] = summarizer.summarize(input_text, summary_type='abstractive')
             else:
                 lang_entry['transcript'] = ''
                 lang_entry['extractive'] = ''
